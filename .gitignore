@@ -2,3 +2,5 @@ terraform/.terraform*
 terraform/tfplan
 terraform/tfstate
 terraform/tfstate.*
+
+steps/

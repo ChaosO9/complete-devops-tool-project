@@ -17,3 +17,7 @@ output "private_ips" {
     jenkins_agents     = aws_instance.devops_jenkins_agent[*].private_ip
   }
 }
+
+output "ansible_s3_bucket" {
+  value = aws_s3_bucket.devops_ansible_bucket.bucket
+}

@@ -51,4 +51,12 @@ resource "aws_instance" "ansible_controller" {
       instance_interruption_behavior = "stop"
     }
   }
+
+  user_data = <<-EOF
+              #!/bin/bash
+              apt-get update -y
+              apt-get install -y python3-pip ansible
+              pip3 install boto3 botocore
+              ansible-galaxy collection install community.aws
+              EOF
 }
