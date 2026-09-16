@@ -15,3 +15,9 @@ variable "ami_id" {
   type        = string
   default     = "ami-0f1329677c7e5aba8"
 }
+
+variable "jenkins_agent_count" {
+  description = "Max Jenkins Instance"
+  type        = number
+  default     = 1
+}
