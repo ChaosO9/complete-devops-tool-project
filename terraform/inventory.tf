@@ -1,5 +1,6 @@
-resource "local_file" "ansible_inventory" {
-  filename = "${path.module}/inventory.ini"
+resource "aws_s3_object" "ansible_inventory" {
+  bucket = aws_s3_bucket.devops_ansible_bucket.bucket
+  key    = "inventory.ini"
 
   content = <<-EOT
 [jenkins_master]

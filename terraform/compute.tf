@@ -58,5 +58,7 @@ resource "aws_instance" "ansible_controller" {
               apt-get install -y python3-pip ansible
               pip3 install boto3 botocore
               ansible-galaxy collection install community.aws
+              aws s3 cp s3://${aws_s3_bucket.devops_ansible_bucket.bucket}/inventory.ini /home/ubuntu/inventory.ini
+              chown ubuntu:ubuntu /home/ubuntu/inventory.ini
               EOF
 }
