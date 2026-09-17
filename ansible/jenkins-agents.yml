@@ -1,0 +1,47 @@
+- name: Configure Jenkins Agents
+  hosts: jenkins_agents
+  become: yes
+  tasks:
+    - name: Install OpenJDK 17 on Ubuntu
+      apt:
+        name: openjdk-17-jdk
+        state: present
+        update_cache: yes
+    - name: Ensure jenkins user home directory exists
+      file:
+        path: /home/ubuntu/jenkins
+        state: directory
+        mode: "0755"
+    - name: Download agent.jar from Jenkins Master
+      get_url:
+        url: http://<JENKINS_MASTER_PRIVATE_IP>:8080/jnlpJars/agent.jar
+        dest: /home/ubuntu/jenkins/agent.jar
+        mode: "0755"
+    - name: Configure the Agent Systemd Service
+      copy:
+        dest: /etc/systemd/system/jenkins-agent.service
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Jenkins Agent
+          After=network.target
+
+          [Service]
+          User=ubuntu
+          Group=ubuntu
+          Environment="JENKINS_URL=http://<JENKINS_MASTER_PRIVATE_IP>:8080"
+          Environment="JENKINS_HOME=/home/ubuntu/jenkins"
+          ExecStart=/usr/bin/java -jar /home/ubuntu/jenkins/agent.jar -jnlpUrl {{ jenkins_url }}/computer/{{ inventory_hostname }}/slave-agent.jnlp -secret {{ jenkins_secret }} -workDir /home/ubuntu/jenkins
+          Restart=on-failure
+          RestartSec=10
+
+          [Install]
+          WantedBy=multi-user.target
+    - name: Start and enable Jenkins Agent service
+      systemd:
+        name: jenkins-agent
+        state: started
+        enabled: yes
+        daemon_reload: yes
