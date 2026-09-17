@@ -17,6 +17,15 @@ resource "aws_instance" "devops_jenkins_agent" {
   }
 }
 
+resource "aws_ebs_volume" "jenkins_master_storage" {
+  availability_zone = aws_subnet.devops_private_subnet.availability_zone
+  size              = 30
+  type              = "gp3"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
 resource "aws_instance" "devops_jenkins_master" {
   ami                    = var.ami_id
   instance_type          = var.instance_type
@@ -33,6 +42,12 @@ resource "aws_instance" "devops_jenkins_master" {
       instance_interruption_behavior = "stop"
     }
   }
+}
+
+resource "aws_volume_attachment" "jenkins_master_volume_attachment" {
+  device_name = "/dev/sdf"
+  instance_id = aws_instance.devops_jenkins_master.id
+  volume_id   = aws_ebs_volume.jenkins_master_storage.id
 }
 
 resource "aws_instance" "ansible_controller" {
