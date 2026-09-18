@@ -1,0 +1,87 @@
+pipeline{
+    agent any
+
+    environment{
+        APP_NAME = "complete-devops-app"
+        DOCKER_IMAGE = "${APP_NAME}:${BUILD_NUMBER}"
+
+        ARTIFACTORY_URL= "https://1001190388.jfrog.io/artifactory"
+        ARTIFACTORY_CREDENTIALS = "<jenkins-credential-id-for-artifactory>"
+        ARTIFACTORY_REPO= "docker-devops-local"
+
+        AWS_REGION = "ap-southeast-1"
+        EKS_CLUSTER_NAME = "DevOps-Project"
+    }
+
+    stages{
+        stage('Checkout'){
+            steps{
+                checkout scm
+            }
+        }
+
+        stage('Build & Test'){
+            steps{
+                echo "Building Docker image: ${DOCKER_IMAGE}"
+                sh "mvn clean package"
+                echo "Build Completed Successfully"
+            }
+        }
+
+        stage('SonarCloud Analysis'){
+            steps{
+                withSonarQubeEnv('SonarQube'){
+                    sh "mvn sonar:sonar"
+                }
+            }
+        }
+
+        stage('Quality Gate'){
+            steps{
+                waitForQualityGate abortPipeline: true
+            }
+        }
+
+        stage('Docker Build & Push'){
+            steps{
+                script{
+                    def jfrogToken = sh(
+                        script: "aws secretsmanager get-secret-value --secret-id devops/jfrog/token --region ${AWS_REGION} --query SecretString --output text",
+                        returnStdout: true
+                    ).trim()
+                    
+                    sh "echo ${jfrogToken} | docker login -u <Artifactory-username> --password-stdin ${ARTIFACTORY_URL}"
+                    
+                    def fullImageName = "${ARTIFACTORY_URL}/${ARTIFACTORY_REPO}/${DOCKER_IMAGE}"
+                    
+                    def appImage = docker.build(fullImageName, '.')
+                    
+                    appImage.push()
+                    appImage.push("latest")
+                }
+            }
+        }
+
+        stage('Deploy to EKS'){
+            steps{
+                script{
+                    echo "Updating kubeconfig for cluster: ${EKS_CLUSTER_NAME} in ${AWS_REGION}"
+                    sh "aws eks update-kubeconfig --name ${EKS_CLUSTER_NAME} --region ${AWS_REGION}"
+
+                    sh "kubectl apply -f k8s/deployment.yaml -f k8s/service.yaml"
+
+                    sh "kubectl rollout status deployment/devops-complete-tool --timeout=120s"
+                }
+            }
+        }
+    }
+
+    post{
+        success {
+            echo "Pipeline Completed Successfully"
+        }
+        failure {
+            echo "Pipeline Failed"
+        }
+    }
+}
