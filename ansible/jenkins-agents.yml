@@ -4,7 +4,7 @@
   tasks:
     - name: Install OpenJDK 17 on Ubuntu
       apt:
-        name: openjdk-17-jdk
+        name: [openjdk-17-jdk, unzip]
         state: present
         update_cache: yes
     - name: Ensure jenkins user home directory exists
@@ -45,3 +45,18 @@
         state: started
         enabled: yes
         daemon_reload: yes
+    - name: Download and Install kubectl (ARM64)
+      get_url:
+        url: https://dl.k8s.io/release/v1.30.0/bin/linux/arm64/kubectl
+        dest: /usr/local/bin/kubectl
+        mode: "0755"
+    - name: Download and Install AWS CLI v2 (ARM64)
+      get_url:
+        url: https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip
+        dest: /tmp/awscliv2.zip
+        mode: "0755"
+    - name: Install AWS CLI v2
+      shell: unzip -o awscliv2.zip && ./aws/install --update
+      args:
+        chdir: /tmp
+        creates: /usr/local/bin/aws
