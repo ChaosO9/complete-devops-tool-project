@@ -3,6 +3,11 @@ terraform/tfplan
 terraform/tfstate
 terraform/tfstate.*
 
+terraform/kubernetes/.terraform*
+terraform/kubernetes/tfplan
+terraform/kubernetes/tfstate
+terraform/kubernetes/tfstate.*
+
 steps/
 
 .vscode/

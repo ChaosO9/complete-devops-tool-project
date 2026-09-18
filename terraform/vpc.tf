@@ -17,10 +17,21 @@ resource "aws_subnet" "devops_public_subnet" {
 }
 
 resource "aws_subnet" "devops_private_subnet" {
-  vpc_id     = aws_vpc.devops_vpc.id
-  cidr_block = "10.0.2.0/24"
+  vpc_id            = aws_vpc.devops_vpc.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "${var.aws_region}a"
   tags = {
     Name = "devops-private-subnet-1"
+  }
+  map_public_ip_on_launch = false
+}
+
+resource "aws_subnet" "devops_private_subnet_2" {
+  vpc_id            = aws_vpc.devops_vpc.id
+  cidr_block        = "10.0.3.0/24"
+  availability_zone = "${var.aws_region}b"
+  tags = {
+    Name = "devops-private-subnet-2"
   }
   map_public_ip_on_launch = false
 }
@@ -81,5 +92,10 @@ resource "aws_route_table_association" "devops_public_rta" {
 
 resource "aws_route_table_association" "devops_private_rta" {
   subnet_id      = aws_subnet.devops_private_subnet.id
+  route_table_id = aws_route_table.devops_private_rt.id
+}
+
+resource "aws_route_table_association" "devops_private_rta_2" {
+  subnet_id      = aws_subnet.devops_private_subnet_2.id
   route_table_id = aws_route_table.devops_private_rt.id
 }
