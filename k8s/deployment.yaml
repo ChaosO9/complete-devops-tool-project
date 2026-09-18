@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-complete-tool
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: devops-complete-tool
+  template:
+    metadata:
+      labels:
+        app: devops-complete-tool
+    spec:
+      containers:
+        - name: devops-app
+          image: <your-artifactory-url>/docker-devops-local/complete-devops-app:latest
+          ports:
+            - containerPort: 8080
+      imagePullSecrets:
+        - name: artifactory-registry-secret
