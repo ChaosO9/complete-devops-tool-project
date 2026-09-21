@@ -12,6 +12,7 @@ resource "kubernetes_secret" "artifactory_registry_secret" {
     namespace = "default"
   }
 
+
   type = "kubernetes.io/dockerconfigjson"
 
   data = {
@@ -19,12 +20,16 @@ resource "kubernetes_secret" "artifactory_registry_secret" {
       auths = {
         (var.artifactory_server) = {
           "username" = var.artifactory_username
-          "password" = data.aws_secretsmanager_secret_version.jfrog_token.secret_string
-          "auth"     = base64encode("${var.artifactory_username}:${data.aws_secretsmanager_secret_version.jfrog_token.secret_string}")
+          "password" = local.jfrog_token
+          "auth"     = base64encode("${var.artifactory_username}:${local.jfrog_token}")
         }
       }
     })
   }
 
   depends_on = [module.eks]
+}
+
+locals {
+  jfrog_token = jsondecode(data.aws_secretsmanager_secret_version.jfrog_token.secret_string)["JFROG_TOKEN"]
 }

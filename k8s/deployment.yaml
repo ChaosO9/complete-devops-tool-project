@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: devops-app
-          image: <your-artifactory-url>/docker-devops-local/complete-devops-app:latest
+          image: irfannoorh.jfrog.io/docker-trial/complete-devops-app:latest
           ports:
             - containerPort: 8000
       imagePullSecrets:

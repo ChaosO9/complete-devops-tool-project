@@ -16,22 +16,14 @@ variable "cluster_version" {
   default     = "1.30"
 }
 
-variable "vpc_id" {
-  description = "VPC ID where the cluster will be deployed"
-  type        = string
-}
-
-variable "subnet_ids" {
-  description = "List of at least 2 subnet IDs in different AZs"
-  type        = list(string)
-}
-
 variable "artifactory_server" {
   description = "Docker registry domain"
   type        = string
+  default     = "irfannoorh.jfrog.io"
 }
 
 variable "artifactory_username" {
   description = "Artifactory username"
   type        = string
+  default     = "maud0@eldver.com"
 }
