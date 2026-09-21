@@ -30,6 +30,11 @@ resource "aws_iam_role_policy_attachment" "ssm_policy_attachment" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+resource "aws_iam_role_policy_attachment" "ssm_attach_secretsmanager" {
+  role       = aws_iam_role.ssm_role.name
+  policy_arn = "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
+}
+
 resource "aws_iam_instance_profile" "ssm_instance_profile" {
   name = "devops-ssm-instance-profile"
   role = aws_iam_role.ssm_role.name
