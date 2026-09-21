@@ -16,6 +16,6 @@ spec:
         - name: devops-app
           image: <your-artifactory-url>/docker-devops-local/complete-devops-app:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 8000
       imagePullSecrets:
         - name: artifactory-registry-secret
