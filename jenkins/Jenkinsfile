@@ -5,9 +5,9 @@ pipeline{
         APP_NAME = "complete-devops-app"
         DOCKER_IMAGE = "${APP_NAME}:${BUILD_NUMBER}"
 
-        ARTIFACTORY_URL= "https://1001190388.jfrog.io/artifactory"
-        ARTIFACTORY_CREDENTIALS = "<jenkins-credential-id-for-artifactory>"
-        ARTIFACTORY_REPO= "docker-devops-local"
+        ARTIFACTORY_SERVER= "irfannoorh.jfrog.io"
+        ARTIFACTORY_USER = "maud0@eldver.com"
+        ARTIFACTORY_REPO= "docker-trial"
 
         AWS_REGION = "ap-southeast-1"
         EKS_CLUSTER_NAME = "DevOps-Project"
@@ -45,14 +45,16 @@ pipeline{
         stage('Docker Build & Push'){
             steps{
                 script{
-                    def jfrogToken = sh(
+                    def secretJson = sh(
                         script: "aws secretsmanager get-secret-value --secret-id devops/jfrog/token --region ${AWS_REGION} --query SecretString --output text",
                         returnStdout: true
                     ).trim()
+
+                    def jfrogToken = new groovy.json.JsonSlurperClassic().parseText(secretJson).JFROG_TOKEN
                     
-                    sh "echo ${jfrogToken} | docker login -u <Artifactory-username> --password-stdin ${ARTIFACTORY_URL}"
+                    sh "echo ${jfrogToken} | docker login -u ${ARTIFACTORY_USER} --password-stdin ${ARTIFACTORY_SERVER}"
                     
-                    def fullImageName = "${ARTIFACTORY_URL}/${ARTIFACTORY_REPO}/${DOCKER_IMAGE}"
+                    def fullImageName = "${ARTIFACTORY_SERVER}/${ARTIFACTORY_REPO}/${DOCKER_IMAGE}"
                     
                     def appImage = docker.build(fullImageName, '.')
                     
