@@ -1,6 +1,7 @@
 - name: Configure Jenkins Master Server
   hosts: jenkins_master
   become: yes
+  gather_facts: false
   tasks:
       - name: Install OpenJDK 17 on Ubuntu
         apt:
