@@ -67,13 +67,35 @@ resource "aws_instance" "ansible_controller" {
     }
   }
 
+  depends_on = [aws_s3_object.ansible_inventory]
+
   user_data = <<-EOF
               #!/bin/bash
+              set -e
+
+              # 1. Update and install packages
               apt-get update -y
-              apt-get install -y python3-pip ansible
+              apt-get install -y python3-pip ansible awscli curl git
+
+              # 2. Install boto3 and botocore
               pip3 install boto3 botocore
-              ansible-galaxy collection install community.aws
+
+              # 3. Install AWS Session Manager Plugin (ARM64)
+              curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_arm64/session-manager-plugin.deb" -o "/tmp/session-manager-plugin.deb"
+              dpkg -i /tmp/session-manager-plugin.deb
+              rm -f /tmp/session-manager-plugin.deb
+
+              # 4. Install Ansible community.aws collection system-wide
+              ansible-galaxy collection install community.aws -p /usr/share/ansible/collections
+
+              # 5. Clone repository and set up playbooks
+              sudo -u ubuntu git clone https://github.com/ChaosO9/complete-devops-tool-project.git /home/ubuntu/complete-devops-tool-project || true
+
+              # 6. Download inventory.ini from S3 into home and repo
               aws s3 cp s3://${aws_s3_bucket.devops_ansible_bucket.bucket}/inventory.ini /home/ubuntu/inventory.ini
-              chown ubuntu:ubuntu /home/ubuntu/inventory.ini
+              cp /home/ubuntu/inventory.ini /home/ubuntu/complete-devops-tool-project/ansible/inventory.ini || true
+
+              # 7. Set correct permissions for ubuntu user
+              chown -R ubuntu:ubuntu /home/ubuntu
               EOF
 }
