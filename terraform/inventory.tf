@@ -15,5 +15,7 @@ ${id}
 ansible_connection=community.aws.aws_ssm
 ansible_aws_ssm_region=${var.aws_region}
 ansible_aws_ssm_bucket_name=${aws_s3_bucket.devops_ansible_bucket.bucket}
+ansible_aws_ssm_timeout=600
+ansible_command_timeout=600
 EOT
 }
