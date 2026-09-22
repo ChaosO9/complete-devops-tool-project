@@ -1,13 +1,18 @@
-terraform/.terraform*
-terraform/tfplan
-terraform/tfstate
-terraform/tfstate.*
+# Terraform local state and directory
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfplan
+.terraform.lock.hcl
+*.terraform.lock.hcl
+tfplan
 
-terraform/kubernetes/.terraform*
-terraform/kubernetes/tfplan
-terraform/kubernetes/tfstate
-terraform/kubernetes/tfstate.*
+# Java Maven build directory
+target/
+*.jar
+*.war
 
-steps/
-
+# IDE and Project Documentation
 .vscode/
+steps/
