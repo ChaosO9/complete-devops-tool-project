@@ -13,7 +13,7 @@ variable "instance_type" {
 variable "ami_id" {
   description = "AMI ID"
   type        = string
-  default     = "ami-0f1329677c7e5aba8"
+  default     = "ami-0b72c6129a4fc2667"
 }
 
 variable "jenkins_agent_count" {
