@@ -13,12 +13,12 @@ module "eks" {
   eks_managed_node_groups = {
     default = {
       name           = "default-ng"
-      instance_types = ["t4g.medium"]
+      instance_types = ["t4g.small"]
       ami_type       = "AL2023_ARM_64_STANDARD"
       min_size       = 1
       max_size       = 3
       desired_size   = 2
-      capacity_type  = "SPOT"
+      capacity_type  = "ON_DEMAND"
     }
   }
 
