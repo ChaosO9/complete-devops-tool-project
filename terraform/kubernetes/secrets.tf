@@ -6,7 +6,7 @@ data "aws_secretsmanager_secret_version" "jfrog_token" {
   secret_id = data.aws_secretsmanager_secret.jfrog_token.id
 }
 
-resource "kubernetes_secret" "artifactory_registry_secret" {
+resource "kubernetes_secret_v1" "artifactory_registry_secret" {
   metadata {
     name      = "artifactory-registry-secret"
     namespace = "default"

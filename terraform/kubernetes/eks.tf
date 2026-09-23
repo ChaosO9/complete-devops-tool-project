@@ -5,7 +5,8 @@ module "eks" {
   cluster_name    = var.cluster_name
   cluster_version = var.cluster_version
 
-  cluster_endpoint_public_access = true
+  cluster_endpoint_public_access           = true
+  enable_cluster_creator_admin_permissions = true
 
   vpc_id     = data.aws_vpc.devops_vpc.id
   subnet_ids = data.aws_subnets.devops_private_subnets.ids
