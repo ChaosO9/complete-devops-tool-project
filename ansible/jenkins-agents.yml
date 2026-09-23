@@ -1,23 +1,118 @@
+# Step A: Run on Jenkins Master to get or create the agent secret
+- name: Register Agent Node on Master and Retrieve Secret
+  hosts: jenkins_master
+  become: yes
+  gather_facts: false
+  tasks:
+    - name: Download jenkins-cli.jar from master
+      get_url:
+        url: http://localhost:8080/jnlpJars/jenkins-cli.jar
+        dest: /tmp/jenkins-cli.jar
+        mode: "0755"
+
+    - name: Create node in Jenkins and retrieve its secret
+      shell: |
+        java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ -auth admin:$(cat /var/lib/jenkins/secrets/initialAdminPassword 2>/dev/null || echo '') groovy = << 'EOF' || java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ groovy = << 'EOF'
+        import jenkins.model.*
+        import hudson.model.*
+        import hudson.slaves.*
+
+        def nodeName = "jenkins-agent-1"
+        def instance = Jenkins.getInstance()
+        if (instance.getNode(nodeName) == null) {
+            DumbSlave slave = new DumbSlave(
+                nodeName,
+                "/home/ubuntu/jenkins",
+                new JNLPLauncher(true)
+            )
+            slave.setNumExecutors(2)
+            slave.setMode(Node.Mode.NORMAL)
+            instance.addNode(slave)
+        }
+        println instance.getNode(nodeName).getComputer().getJnlpMac()
+        EOF
+      register: agent_secret_output
+      ignore_errors: yes
+
+    - name: Set secret as a global fact for the agent
+      set_fact:
+        dynamic_jenkins_secret: "{{ agent_secret_output.stdout_lines[-1] if (agent_secret_output is defined and agent_secret_output.stdout_lines | length > 0) else '' }}"
+
+# Step B: Run on Jenkins Agent using the dynamic secret
 - name: Configure Jenkins Agents
   hosts: jenkins_agents
   become: yes
+  gather_facts: false
+  vars:
+    jenkins_url: "http://{{ jenkins_master_ip }}:8080"
+    jenkins_agent_name: "jenkins-agent-1"
+    jenkins_secret: "{{ hostvars[groups['jenkins_master'][0]]['dynamic_jenkins_secret'] | default('') }}"
   tasks:
-    - name: Install OpenJDK 17 on Ubuntu
+    # Starts service using {{ jenkins_secret }} automatically!
+    # 1. Install Java 21, Java 17, Maven, Docker, and utilities
+    - name: Install Java, Maven, Docker, and utilities
       apt:
-        name: [openjdk-17-jdk, unzip]
+        name:
+          - openjdk-21-jdk
+          - openjdk-17-jdk
+          - maven
+          - docker.io
+          - unzip
         state: present
         update_cache: yes
-    - name: Ensure jenkins user home directory exists
+
+    # 2. Configure Docker service and permissions
+    - name: Ensure docker service is running and enabled
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    # 3. Install kubectl (ARM64)
+    - name: Download and Install kubectl (ARM64)
+      get_url:
+        url: https://dl.k8s.io/release/v1.30.0/bin/linux/arm64/kubectl
+        dest: /usr/local/bin/kubectl
+        mode: "0755"
+
+    # 4. Install AWS CLI v2 (ARM64)
+    - name: Download AWS CLI v2 (ARM64)
+      get_url:
+        url: https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip
+        dest: /tmp/awscliv2.zip
+        mode: "0755"
+
+    - name: Install AWS CLI v2
+      shell: unzip -o /tmp/awscliv2.zip -d /tmp && /tmp/aws/install --update
+      args:
+        creates: /usr/local/bin/aws
+
+    # 5. Set up Jenkins Agent directories and agent.jar
+    - name: Ensure jenkins work directory exists
       file:
         path: /home/ubuntu/jenkins
         state: directory
+        owner: ubuntu
+        group: ubuntu
         mode: "0755"
+
     - name: Download agent.jar from Jenkins Master
       get_url:
-        url: http://<JENKINS_MASTER_PRIVATE_IP>:8080/jnlpJars/agent.jar
+        url: "{{ jenkins_url }}/jnlpJars/agent.jar"
         dest: /home/ubuntu/jenkins/agent.jar
+        owner: ubuntu
+        group: ubuntu
         mode: "0755"
-    - name: Configure the Agent Systemd Service
+      ignore_errors: yes
+
+    # 6. Configure systemd service for Jenkins Inbound Agent
+    - name: Configure Jenkins Agent systemd service
       copy:
         dest: /etc/systemd/system/jenkins-agent.service
         owner: root
@@ -25,38 +120,26 @@
         mode: "0644"
         content: |
           [Unit]
-          Description=Jenkins Agent
+          Description=Jenkins Inbound Agent
           After=network.target
 
           [Service]
           User=ubuntu
           Group=ubuntu
-          Environment="JENKINS_URL=http://<JENKINS_MASTER_PRIVATE_IP>:8080"
           Environment="JENKINS_HOME=/home/ubuntu/jenkins"
-          ExecStart=/usr/bin/java -jar /home/ubuntu/jenkins/agent.jar -jnlpUrl {{ jenkins_url }}/computer/{{ inventory_hostname }}/slave-agent.jnlp -secret {{ jenkins_secret }} -workDir /home/ubuntu/jenkins
+          WorkingDirectory=/home/ubuntu/jenkins
+          ExecStart=/usr/bin/java -jar /home/ubuntu/jenkins/agent.jar -jnlpUrl {{ jenkins_url }}/computer/{{ jenkins_agent_name }}/jenkins-agent.jnlp -secret {{ jenkins_secret }} -workDir /home/ubuntu/jenkins
           Restart=on-failure
           RestartSec=10
 
           [Install]
           WantedBy=multi-user.target
+
+    # 7. Start the agent service only if the secret is provided
     - name: Start and enable Jenkins Agent service
       systemd:
         name: jenkins-agent
         state: started
         enabled: yes
         daemon_reload: yes
-    - name: Download and Install kubectl (ARM64)
-      get_url:
-        url: https://dl.k8s.io/release/v1.30.0/bin/linux/arm64/kubectl
-        dest: /usr/local/bin/kubectl
-        mode: "0755"
-    - name: Download and Install AWS CLI v2 (ARM64)
-      get_url:
-        url: https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip
-        dest: /tmp/awscliv2.zip
-        mode: "0755"
-    - name: Install AWS CLI v2
-      shell: unzip -o awscliv2.zip && ./aws/install --update
-      args:
-        chdir: /tmp
-        creates: /usr/local/bin/aws
+      when: jenkins_secret != ""
