@@ -14,6 +14,7 @@ module "eks" {
     default = {
       name           = "default-ng"
       instance_types = ["t4g.medium"]
+      ami_type       = "AL2023_ARM_64_STANDARD"
       min_size       = 1
       max_size       = 3
       desired_size   = 2
