@@ -1,44 +1,3 @@
-# Step A: Run on Jenkins Master to get or create the agent secret
-- name: Register Agent Node on Master and Retrieve Secret
-  hosts: jenkins_master
-  become: yes
-  gather_facts: false
-  tasks:
-    - name: Download jenkins-cli.jar from master
-      get_url:
-        url: http://localhost:8080/jnlpJars/jenkins-cli.jar
-        dest: /tmp/jenkins-cli.jar
-        mode: "0755"
-
-    - name: Create node in Jenkins and retrieve its secret
-      shell: |
-        java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ -auth admin:$(cat /var/lib/jenkins/secrets/initialAdminPassword 2>/dev/null || echo '') groovy = << 'EOF' || java -jar /tmp/jenkins-cli.jar -s http://localhost:8080/ groovy = << 'EOF'
-        import jenkins.model.*
-        import hudson.model.*
-        import hudson.slaves.*
-
-        def nodeName = "jenkins-agent-1"
-        def instance = Jenkins.getInstance()
-        if (instance.getNode(nodeName) == null) {
-            DumbSlave slave = new DumbSlave(
-                nodeName,
-                "/home/ubuntu/jenkins",
-                new JNLPLauncher(true)
-            )
-            slave.setNumExecutors(2)
-            slave.setMode(Node.Mode.NORMAL)
-            instance.addNode(slave)
-        }
-        println instance.getNode(nodeName).getComputer().getJnlpMac()
-        EOF
-      register: agent_secret_output
-      ignore_errors: yes
-
-    - name: Set secret as a global fact for the agent
-      set_fact:
-        dynamic_jenkins_secret: "{{ agent_secret_output.stdout_lines[-1] if (agent_secret_output is defined and agent_secret_output.stdout_lines | length > 0) else '' }}"
-
-# Step B: Run on Jenkins Agent using the dynamic secret
 - name: Configure Jenkins Agents
   hosts: jenkins_agents
   become: yes
@@ -46,7 +5,7 @@
   vars:
     jenkins_url: "http://{{ jenkins_master_ip }}:8080"
     jenkins_agent_name: "jenkins-agent-1"
-    jenkins_secret: "{{ hostvars[groups['jenkins_master'][0]]['dynamic_jenkins_secret'] | default('') }}"
+    jenkins_secret: ""
   tasks:
     # Starts service using {{ jenkins_secret }} automatically!
     # 1. Install Java 21, Java 17, Maven, Docker, and utilities
