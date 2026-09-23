@@ -3,9 +3,9 @@
   become: yes
   gather_facts: false
   tasks:
-      - name: Install OpenJDK 17 on Ubuntu
+      - name: Install OpenJDK 21 on Ubuntu
         apt:
-            name: openjdk-17-jdk
+            name: openjdk-21-jdk
             state: present
             update_cache: yes
       - name: Ensure keyring directory exist
