@@ -25,6 +25,11 @@
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
         <sonar.jacoco.reportPath>${project.basedir}/../target/jacoco.exec</sonar.jacoco.reportPath>
         <sonar.language>java</sonar.language>
+
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <sonar.organization>chaoso9</sonar.organization>
+        <sonar.projectKey>ChaosO9_complete-devops-tool-project</sonar.projectKey>
+        <sonar.sources>src/main/java,terraform,k8s,Dockerfile</sonar.sources>
     </properties>
 
     <dependencies>
