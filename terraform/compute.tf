@@ -15,6 +15,34 @@ resource "aws_instance" "devops_jenkins_agent" {
       instance_interruption_behavior = "stop"
     }
   }
+
+  root_block_device {
+    volume_size           = 30
+    volume_type           = "gp3"
+    delete_on_termination = true
+  }
+
+  user_data = <<-EOF
+              #!/bin/bash
+              set -e
+
+              # 1. Ensure filesystem uses full EBS size
+              growpart /dev/nvme0n1 1 || true
+              resize2fs /dev/nvme0n1p1 || true
+
+              # 2. Configure 4GB Swapfile
+              if [ ! -f /swapfile ]; then
+                fallocate -l 4G /swapfile
+                chmod 600 /swapfile
+                mkswap /swapfile
+                swapon /swapfile
+                echo '/swapfile none swap sw 0 0' >> /etc/fstab
+              fi
+
+              # 3. Disable tmpfs mount so /tmp uses the 30GB EBS disk
+              systemctl mask tmp.mount
+              systemctl stop tmp.mount || true
+              EOF
 }
 
 resource "aws_ebs_volume" "jenkins_master_storage" {
@@ -42,6 +70,33 @@ resource "aws_instance" "devops_jenkins_master" {
       instance_interruption_behavior = "stop"
     }
   }
+  root_block_device {
+    volume_size           = 30
+    volume_type           = "gp3"
+    delete_on_termination = true
+  }
+
+  user_data = <<-EOF
+              #!/bin/bash
+              set -e
+
+              # 1. Ensure filesystem uses full EBS size
+              growpart /dev/nvme0n1 1 || true
+              resize2fs /dev/nvme0n1p1 || true
+
+              # 2. Configure 4GB Swapfile
+              if [ ! -f /swapfile ]; then
+                fallocate -l 4G /swapfile
+                chmod 600 /swapfile
+                mkswap /swapfile
+                swapon /swapfile
+                echo '/swapfile none swap sw 0 0' >> /etc/fstab
+              fi
+
+              # 3. Disable tmpfs mount so /tmp uses the 30GB EBS disk
+              systemctl mask tmp.mount
+              systemctl stop tmp.mount || true
+              EOF
 }
 
 resource "aws_volume_attachment" "jenkins_master_volume_attachment" {
@@ -67,11 +122,30 @@ resource "aws_instance" "ansible_controller" {
     }
   }
 
+  root_block_device {
+    volume_size           = 30
+    volume_type           = "gp3"
+    delete_on_termination = true
+  }
+
   depends_on = [aws_s3_object.ansible_inventory]
 
   user_data = <<-EOF
               #!/bin/bash
               set -e
+
+              # 0. Configure 4GB Swapfile
+              if [ ! -f /swapfile ]; then
+                fallocate -l 4G /swapfile
+                chmod 600 /swapfile
+                mkswap /swapfile
+                swapon /swapfile
+                echo '/swapfile none swap sw 0 0' >> /etc/fstab
+              fi
+
+              # 0.1 Disable tmpfs mount so /tmp uses the 30GB EBS disk
+              systemctl mask tmp.mount
+              systemctl stop tmp.mount || true
 
               # 1. Update and install packages
               apt-get update -y
