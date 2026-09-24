@@ -45,21 +45,16 @@ pipeline{
         stage('Docker Build & Push'){
             steps{
                 script{
-                    def secretJson = sh(
-                        script: "aws secretsmanager get-secret-value --secret-id devops/jfrog/token --region ${AWS_REGION} --query SecretString --output text",
-                        returnStdout: true
-                    ).trim()
-
-                    def jfrogToken = new groovy.json.JsonSlurperClassic().parseText(secretJson).JFROG_TOKEN
-                    
-                    sh "echo ${jfrogToken} | docker login -u ${ARTIFACTORY_USER} --password-stdin ${ARTIFACTORY_SERVER}"
-                    
                     def fullImageName = "${ARTIFACTORY_SERVER}/${ARTIFACTORY_REPO}/${DOCKER_IMAGE}"
-                    
-                    def appImage = docker.build(fullImageName, '.')
-                    
-                    appImage.push()
-                    appImage.push("latest")
+                    def latestImageName = "${ARTIFACTORY_SERVER}/${ARTIFACTORY_REPO}/${APP_NAME}:latest"
+
+                    sh """
+                        JFROG_TOKEN=\$(aws secretsmanager get-secret-value --secret-id devops/jfrog/token --region ${AWS_REGION} --query SecretString --output text | python3 -c "import json,sys; print(json.loads(sys.stdin.read())['JFROG_TOKEN'])")
+                        echo "\$JFROG_TOKEN" | docker login -u "${ARTIFACTORY_USER}" --password-stdin "${ARTIFACTORY_SERVER}"
+                        docker build -t ${fullImageName} -t ${latestImageName} .
+                        docker push ${fullImageName}
+                        docker push ${latestImageName}
+                    """
                 }
             }
         }
