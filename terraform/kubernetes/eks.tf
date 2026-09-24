@@ -19,7 +19,7 @@ module "eks" {
       min_size       = 1
       max_size       = 3
       desired_size   = 2
-      capacity_type  = "ON_DEMAND"
+      capacity_type  = "SPOT"
     }
   }
 
@@ -28,4 +28,20 @@ module "eks" {
     Terraform          = "true"
     Environment        = "devops"
   }
+
+  access_entries = {
+    jenkins_agent = {
+      principal_arn = "arn:aws:iam::486517829385:role/devops-ssm-role"
+
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
+
 }

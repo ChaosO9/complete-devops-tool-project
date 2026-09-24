@@ -35,6 +35,25 @@ resource "aws_iam_role_policy_attachment" "ssm_attach_secretsmanager" {
   policy_arn = "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
 }
 
+resource "aws_iam_role_policy" "ssm_eks_policy" {
+  name = "devops-eks-access-policy"
+  role = aws_iam_role.ssm_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "eks:DescribeCluster",
+          "eks:ListClusters"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_instance_profile" "ssm_instance_profile" {
   name = "devops-ssm-instance-profile"
   role = aws_iam_role.ssm_role.name
