@@ -23,6 +23,17 @@ module "eks" {
     }
   }
 
+  cluster_security_group_additional_rules = {
+    ingress_jenkins = {
+      description = "Allow Jenkins Agent to access EKS Control Plane"
+      protocol    = "tcp"
+      from_port   = 443
+      to_port     = 443
+      type        = "ingress"
+      cidr_blocks = [data.aws_vpc.devops_vpc.cidr_block]
+    }
+  }
+
   tags = {
     "eks:cluster-name" = var.cluster_name
     Terraform          = "true"
