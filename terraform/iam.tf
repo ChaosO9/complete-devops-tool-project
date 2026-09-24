@@ -35,6 +35,8 @@ resource "aws_iam_role_policy_attachment" "ssm_attach_secretsmanager" {
   policy_arn = "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
 }
 
+data "aws_caller_identity" "current" {}
+
 resource "aws_iam_role_policy" "ssm_eks_policy" {
   name = "devops-eks-access-policy"
   role = aws_iam_role.ssm_role.id
@@ -43,12 +45,16 @@ resource "aws_iam_role_policy" "ssm_eks_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = [
-          "eks:DescribeCluster",
-          "eks:ListClusters"
-        ]
+        Sid      = "AllowListClusters"
+        Effect   = "Allow"
+        Action   = ["eks:ListClusters"]
         Resource = "*"
+      },
+      {
+        Sid      = "AllowDescribeDevOpsClusterOnly"
+        Effect   = "Allow"
+        Action   = ["eks:DescribeCluster"]
+        Resource = "arn:aws:eks:${var.aws_region}:${data.aws_caller_identity.current.account_id}:cluster/DevOps-Project"
       }
     ]
   })
