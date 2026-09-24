@@ -13,7 +13,7 @@ variable "cluster_name" {
 variable "cluster_version" {
   description = "EKS Cluster Version"
   type        = string
-  default     = "1.30"
+  default     = "1.31"
 }
 
 variable "artifactory_server" {
